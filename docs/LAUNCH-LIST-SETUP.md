@@ -1,0 +1,127 @@
+# Launch-list setup
+
+The coming-soon page's single email field is a real signup form: it
+POSTs the visitor's address to an Apps Script Web app, which appends
+it to a **private** Google Sheet — the launch list. There is no
+mailto hand-off and no email address on the page. This is the same
+pattern as the main site and drone site inquiry forms, cut down to
+one field.
+
+## What you need
+
+- A Google account (the one you want the list under — your personal
+  Gmail is fine).
+- About five minutes. The Sheet, the script, and the deployment are
+  all in that account; nothing here touches the main site or the
+  drone site.
+
+## Steps
+
+### 1. Create the private Sheet
+
+1. In Google Sheets, create a new blank spreadsheet. Name it
+   something clear, e.g. **WhenWhere — Launch list**.
+2. Leave it as it is — the script creates the `Launch list` tab and
+   its header row (`Submitted | Email`) on the first signup.
+3. **Do not publish this Sheet to the web.** It holds people's email
+   addresses. Keep its Share setting on Restricted (just you, plus
+   anyone you explicitly add as an Editor — same lockdown as the
+   content Sheets). The page never needs the Sheet link, only the
+   Web app URL from step 3.
+
+### 2. Paste in the script
+
+1. In the Sheet: **Extensions → Apps Script**. A new script editor
+   opens with a default `Code.gs`.
+2. Delete the default contents and paste in the whole of
+   `docs/apps-script/Code.gs` from this repo.
+3. Save (Ctrl/Cmd+S). There is one setting at the top:
+   `NOTIFY_EMAIL`. Leave it blank and the Sheet is the only record
+   — no per-signup email. Put your Gmail there if you want one
+   email per signup (useful while testing; noisy once the list
+   grows).
+
+### 3. Deploy it as a Web app
+
+1. **Deploy → New deployment → Web app** (gear icon → Web app).
+2. **Execute as: Me.**
+3. **Who has access: Anyone.** (The page is public, so the endpoint
+   has to accept posts from anyone. The script only ever writes one
+   email address to your Sheet — it cannot read or change anything
+   else.)
+4. **Deploy**, authorize when asked (the script needs permission to
+   edit this Sheet and, only if you set `NOTIFY_EMAIL`, to send mail
+   as you), and copy the Web app URL. It ends in `/exec`.
+
+### 4. Paste the URL into the page
+
+1. In `index.html`, find `WHENWHERE_CONFIG` just above the main
+   script and paste the URL as `LAUNCH_LIST_ENDPOINT`:
+
+   ```js
+   var WHENWHERE_CONFIG = {
+     LAUNCH_LIST_ENDPOINT: "https://script.google.com/macros/s/…/exec"
+   };
+   ```
+
+2. Push once. From then on the form saves straight to the Sheet.
+
+### 5. Test it
+
+1. Open the live page and submit **your own** email.
+2. You should see "You're on the list". Check the Sheet — a row
+   `Submitted | your email` should be in the `Launch list` tab.
+3. Submit the same email again: the page still says "You're on
+   the list", but **no second row** appears — repeat signups are
+   deduped.
+
+If you ever change `Code.gs` after deploying, deploy it again as a
+**new version** (Manage deployments → edit → new version). The URL
+stays the same.
+
+## How the list works
+
+- One row per signup: the timestamp and the email, nothing else.
+  No name, no message, no tracking.
+- **Deduped by address** (case-insensitive). A visitor who signs up
+  twice, or double-clicks Submit, gets one row.
+- **No notification email by default.** The Sheet is the list. If
+  you set `NOTIFY_EMAIL`, you get one email per signup instead.
+- The page validates the address in the browser first (same check
+  the script runs again server-side), and the script answers plain
+  `'ok'` — the page only shows "You're on the list" when the server
+  actually accepted it. A failed send shows "Something went wrong —
+  please try again in a moment" and keeps the form up.
+
+## At launch time
+
+Export the Sheet (File → Download → CSV) and import it into
+whatever you send the launch email with — your Gmail for a small
+list, or a mailing tool (Buttondown, Mailchimp, ConvertKit) if the
+list is big enough to want unsubscribes and delivery tracking. The
+list is a plain two-column CSV, so it imports anywhere. There is
+nothing to set up now for that step; decide the sending tool when
+the launch date is real.
+
+## Troubleshooting
+
+| What you see | Likely cause | Fix |
+|---|---|---|
+| "Signups aren't open just yet" | `LAUNCH_LIST_ENDPOINT` is still blank in `index.html` | Paste the Web app URL (step 4) and push. |
+| "Something went wrong — please try again" | The script errored or the URL is wrong | Open the Web app URL in a browser — it should show "WhenWhere launch list — POST an email to join." If it doesn't, the deployment is wrong (step 3). Then check the Apps Script **Executions** log for the error. |
+| Page says "You're on the list" but no row appears | A duplicate address (deduped — expected), or the row went to a different Sheet | Check the `Launch list` tab in the Sheet the script is bound to. If you pasted the script into the wrong Sheet, move it. |
+| The form does nothing at all | JavaScript error, or the endpoint never got set | Open the browser console for the error; check `WHENWHERE_CONFIG` is above the main script and the URL ends in `/exec`. |
+
+## Why this instead of a mailing-list service
+
+The page only needs to *record* one email field, not send mail yet.
+An Apps Script + Sheet does that with no new account, no monthly
+cost, and no third party holding the list — the same backend you
+already run for the two inquiry forms, so there is nothing new to
+learn or maintain. The sending tool is a launch-day decision, not a
+today decision: when the date is real, export the CSV and pick the
+tool then. If you'd rather have the blast tool ready now, the
+alternative is a service like Buttondown (free tier, built for
+exactly this) — the form would POST to its endpoint instead, and
+the Sheet step goes away. But for a list that only gets used once,
+at launch, the Sheet is the simpler keeper.
