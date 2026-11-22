@@ -32,6 +32,14 @@ ready — one page, one job: collect emails for the launch list.
   now records the address itself, and there is no "email us at"
   line to scrape or to answer by hand.
 
+## Screenshot
+
+Captured from the page at 1280×900 in dark mode (the page follows
+the OS — the light rendering is the same layout in warm ivory).
+Serve the folder over HTTP first so the fonts load.
+
+![Coming Soon — the wordmark, headline, and single email signup](docs/screenshots/hero.png)
+
 ## Preview
 
 `index.html` is the whole page — open it in a browser, or serve the
@@ -95,6 +103,8 @@ whenwhere-biz-coming-soon/
 │       └── pages.yml           # deploy on push to main
 ├── docs/
 │   ├── LAUNCH-LIST-SETUP.md    # private Sheet + Apps Script setup, testing, troubleshooting
+│   ├── screenshots/
+│   │   └── hero.png            # README hero shot (1280×900, dark mode)
 │   └── apps-script/
 │       └── Code.gs             # Apps Script doPost for the launch-list Sheet
 ├── index.html                  # the page
