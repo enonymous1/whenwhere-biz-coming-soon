@@ -91,6 +91,16 @@ git, and no backend server needed. The workflow
 not need a redeploy of anything else — the page is static, and the
 launch list lives in the Sheet, not the repo.
 
+## Custom domain
+
+To serve this page at `whenwhere.biz` itself (instead of the
+github.io URL), see
+[docs/CUSTOM-DOMAIN.md](docs/CUSTOM-DOMAIN.md). The short version:
+the repo already carries a `CNAME` file with `whenwhere.biz`;
+point the domain's DNS at GitHub's Pages IPs and turn on Enforce
+HTTPS. When the full site is ready, the custom domain moves to the
+main-site repo and the DNS stays the same.
+
 When the full site is ready, this page is the one that comes down —
 `whenwhere.biz` points at the main site instead.
 
@@ -103,6 +113,7 @@ whenwhere-biz-coming-soon/
 │       └── pages.yml           # deploy on push to main
 ├── docs/
 │   ├── LAUNCH-LIST-SETUP.md    # private Sheet + Apps Script setup, testing, troubleshooting
+│   ├── CUSTOM-DOMAIN.md        # point whenwhere.biz at this page (DNS + HTTPS)
 │   ├── screenshots/
 │   │   └── hero.png            # README hero shot (1280×900, dark mode)
 │   └── apps-script/
