@@ -30,6 +30,15 @@
  * Keep this Sheet private (never publish it to the web). The page
  * only needs the Web app URL; nobody needs the Sheet link.
  *
+ * Per-signup notification (2026-11-25): when NOTIFY_EMAIL is set,
+ * each new signup sends one email with the address, the running
+ * total on the list, the submitted time, and a link back to this
+ * Sheet. The email is sent both as plain text and as a lightly
+ * styled HTML version (inline styles only — Gmail strips
+ * `<style>` blocks and external fonts/images, so there is no
+ * stylesheet, logo, or tracking pixel to strip). The address is
+ * HTML-escaped before it goes into the HTML version.
+ *
  * Response contract (the page depends on this — do not change it
  * without changing index.html in step):
  *   - Success (including a deduped repeat): plain text `ok`.
@@ -168,7 +177,16 @@ function doPost(e) {
     // Time zone, defaulting to the Sheet's). The Sheet displays it
     // in that zone; if the list is ever exported for another
     // timezone, convert at export time, not here.
-    sheet.appendRow([new Date(), email]);
+    var submitted = new Date();
+    sheet.appendRow([submitted, email]);
+
+    // The running total, exact at this moment: the dedup check and
+    // the append above ran under the script lock, so no other
+    // signup can have slipped in between. Minus one for the
+    // header row.
+    var total = sheet.getLastRow() - 1;
+    var submittedText = Utilities.formatDate(
+      submitted, Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm');
 
     // Notification is best-effort and must never fail the signup:
     // the row above is already saved, so a mail failure (bad
@@ -178,10 +196,13 @@ function doPost(e) {
     // like a second failure.
     if (NOTIFY_EMAIL && EMAIL_RE.test(NOTIFY_EMAIL)) {
       try {
+        var notify = buildNotifyEmail(
+          email, total, submittedText, getSpreadsheetUrl());
         MailApp.sendEmail({
           to: NOTIFY_EMAIL,
-          subject: 'New WhenWhere launch-list signup',
-          body: 'New signup for the WhenWhere launch list:\n\nEmail: ' + email + '\n'
+          subject: notify.subject,
+          body: notify.body,
+          htmlBody: notify.htmlBody
         });
       } catch (mailErr) {
         Logger.log('Launch-list notify email failed for %s: %s', email, mailErr);
@@ -200,6 +221,98 @@ function doPost(e) {
   } finally {
     if (locked) lock.releaseLock();
   }
+}
+
+/**
+ * Builds the per-signup notification email (plain text + HTML).
+ *
+ * Kept as a pure function — no SpreadsheetApp/MailApp calls — so
+ * the wording and the escaping can be reasoned about (and tested)
+ * without a live Sheet. The subject carries the running total in
+ * parentheses so the inbox shows the list size at a glance, while
+ * the fixed prefix keeps the thread filterable/searchable.
+ *
+ * Styling is deliberately light and inline-only: Gmail strips
+ * `<style>` blocks, external stylesheets, webfonts and images, so
+ * anything fancier would be stripped or blocked on arrival. No
+ * logo, no webfont, no tracking pixel — a navy header bar, the
+ * gold accent, and one link button. The plain-text body carries
+ * the same content for clients that do not render HTML.
+ *
+ * @param {string} email The normalised (trimmed, lower-cased) address.
+ * @param {number} total Running total on the list, header excluded.
+ * @param {string} submittedText The signup time, already formatted.
+ * @param {string} sheetUrl Link back to the launch-list Sheet, or
+ *     '' when unknown — the link is then omitted, not rendered empty.
+ * @return {{subject: string, body: string, htmlBody: string}} The
+ *     three parts MailApp.sendEmail takes.
+ */
+function buildNotifyEmail(email, total, submittedText, sheetUrl) {
+  // The address is escaped before it touches the HTML version: the
+  // email regex allows characters like <, > and &, so an address
+  // such as "<b>@example.com" would otherwise break out of the
+  // markup in the notification. The plain-text body uses the raw
+  // address — there is nothing to escape into there.
+  var safeEmail = escapeHtml(email);
+  var safeUrl = escapeHtml(sheetUrl);
+  var subject = 'New WhenWhere launch-list signup (#' + total + ')';
+  var body = 'New signup for the WhenWhere launch list:\n\n' +
+    'Email: ' + email + '\n' +
+    'Total on the list: ' + total + '\n' +
+    'Submitted: ' + submittedText + '\n' +
+    (sheetUrl ? 'Launch list: ' + sheetUrl + '\n' : '');
+  var link = sheetUrl ?
+    '<p style="margin:20px 0 0;"><a href="' + safeUrl + '" ' +
+    'style="display:inline-block;background:#d9a441;color:#131a38;' +
+    'padding:10px 18px;border-radius:999px;text-decoration:none;' +
+    'font-family:Arial,sans-serif;font-size:14px;">' +
+    'Open the launch list</a></p>' : '';
+  var htmlBody =
+    '<div style="font-family:Georgia,serif;color:#131a38;max-width:480px;">' +
+    '<div style="background:#060a1a;color:#f2ead6;padding:16px 20px;' +
+    'font-size:18px;letter-spacing:0.18em;">WHEN<span style="color:#d9a441;">WHERE</span></div>' +
+    '<div style="background:#f6f1e6;padding:20px;">' +
+    '<p style="margin:0 0 8px;font-family:Arial,sans-serif;font-size:14px;">' +
+    'New signup for the WhenWhere launch list</p>' +
+    '<p style="margin:0 0 8px;font-size:18px;"><strong>' + safeEmail + '</strong></p>' +
+    '<p style="margin:0 0 4px;font-family:Arial,sans-serif;font-size:14px;">' +
+    'Total on the list: <strong>' + total + '</strong></p>' +
+    '<p style="margin:0;font-family:Arial,sans-serif;font-size:14px;color:#454d6e;">' +
+    'Submitted: ' + escapeHtml(submittedText) + '</p>' +
+    link +
+    '</div></div>';
+  return { subject: subject, body: body, htmlBody: htmlBody };
+}
+
+/**
+ * Escapes a value for interpolation into HTML text or an attribute.
+ * Ampersand first — escaping it last would double-escape the
+ * entities the other replacements just wrote.
+ *
+ * @param {string} value The raw value.
+ * @return {string} The value with &, <, >, " and ' escaped.
+ */
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/**
+ * Link back to the launch-list Sheet for the notification email.
+ * The link goes only to NOTIFY_EMAIL (the owner), never to a
+ * visitor, and it grants nothing — the recipient already owns the
+ * Sheet. Returns '' when the spreadsheet cannot be resolved, so
+ * the caller omits the link instead of sending a broken one.
+ *
+ * @return {string} The Sheet URL, or ''.
+ */
+function getSpreadsheetUrl() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  return ss ? ss.getUrl() : '';
 }
 
 /**

@@ -93,7 +93,9 @@ stays the same.
   you set `NOTIFY_EMAIL`, you get one email per signup instead. A
   failed notification email never fails the signup itself — the row
   is already saved, and the failure is logged in the Apps Script
-  **Executions** log.
+  **Executions** log. Each notification shows the new address, the
+  running total on the list, when they signed up, and a link back
+  to the Sheet (plain text plus a lightly styled HTML version).
 - The page validates the address in the browser first (same check
   the script runs again server-side), and the script answers plain
   `'ok'` — the page only shows "You're on the list" when the server
