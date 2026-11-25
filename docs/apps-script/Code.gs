@@ -53,12 +53,16 @@
  * the row is deleted. (An earlier draft told a mistaken
  * recipient to ignore it — but an ignored address would still
  * get the launch email, so ignoring was the one thing that
- * didn't work.) A deduped repeat sends nothing. Both emails go out via MailApp, which means they come
- * from the Gmail account the script runs as — the owner's
- * personal Gmail, for now. Sending from hello@whenwhere.biz
- * needs a verified Gmail alias for that address plus a switch
- * to GmailApp.sendEmail({from: ...}); that is a later change,
- * not a code tweak (see LAUNCH-LIST-SETUP.md).
+ * didn't work.) A deduped repeat sends nothing. Both emails go
+ * out via MailApp, which means they come from the Gmail account
+ * the script runs as — the owner's personal Gmail, for now —
+ * but both carry the display name `WhenWhere.biz` (the `name`
+ * option on each send), so that is what the recipient's inbox
+ * shows, exactly like the main site's emails. Sending from
+ * hello@whenwhere.biz needs a verified Gmail alias for that
+ * address plus a switch to GmailApp.sendEmail({from: ...});
+ * that is a later change, not a code tweak (see
+ * LAUNCH-LIST-SETUP.md).
  *
  * Quota note: Apps Script counts recipients, not emails — a
  * consumer Gmail account gets 100 recipients a day, so with
@@ -238,7 +242,8 @@ function doPost(e) {
           to: email,
           subject: confirm.subject,
           body: confirm.body,
-          htmlBody: confirm.htmlBody
+          htmlBody: confirm.htmlBody,
+          name: 'WhenWhere.biz'
         });
       } catch (confirmErr) {
         Logger.log('Launch-list confirmation email failed for %s: %s', email, confirmErr);
@@ -259,7 +264,8 @@ function doPost(e) {
           to: NOTIFY_EMAIL,
           subject: notify.subject,
           body: notify.body,
-          htmlBody: notify.htmlBody
+          htmlBody: notify.htmlBody,
+          name: 'WhenWhere.biz'
         });
       } catch (mailErr) {
         Logger.log('Launch-list notify email failed for %s: %s', email, mailErr);

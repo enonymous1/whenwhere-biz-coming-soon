@@ -99,7 +99,10 @@ stays the same.
   short email from your Gmail: "You're on the WhenWhere launch
   list". It states the honest total — this confirmation plus one
   launch email, two emails in all — with a gold "Visit
-  WhenWhere.biz" button. It names the address it was sent to and
+  WhenWhere.biz" button. It shows in the recipient's inbox as
+  from **WhenWhere.biz** (the `name` option on the send — the
+  address behind it is still your Gmail, same as the main
+  site's emails). It names the address it was sent to and
   routes both cases to one reply: if the signup wasn't theirs,
   or they'd like to be removed, just reply and the row is
   deleted. (It deliberately does not tell a mistaken recipient

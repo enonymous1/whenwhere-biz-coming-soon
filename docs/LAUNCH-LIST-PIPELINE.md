@@ -124,9 +124,11 @@ sequenceDiagram
 
 Both emails go out via MailApp, which means both come **from the
 Gmail account the script runs as** — the manager's personal Gmail,
-for now. Sending from `hello@whenwhere.biz` needs a mailbox for that
-address first (there is none yet), then a verified Gmail "Send mail
-as" alias for it, and a switch in `Code.gs` from `MailApp` to
+for now — under the display name **WhenWhere.biz** (the `name`
+option on each send, same as the main site's emails). Sending from
+`hello@whenwhere.biz` needs a mailbox for that address first
+(there is none yet), then a verified Gmail "Send mail as" alias
+for it, and a switch in `Code.gs` from `MailApp` to
 `GmailApp.sendEmail({ from: ... })`.
 
 ### The confirmation (to the visitor)
