@@ -22,7 +22,9 @@ one field.
 1. In Google Sheets, create a new blank spreadsheet. Name it
    something clear, e.g. **WhenWhere — Launch list**.
 2. Leave it as it is — the script creates the `Launch list` tab and
-   its header row (`Submitted | Email`) on the first signup.
+   its header row (`Submitted | Email`) on the first signup. If the
+   tab already has rows but no header row, the script inserts the
+   headers at the top instead of treating the first row as a header.
 3. **Do not publish this Sheet to the web.** It holds people's email
    addresses. Keep its Share setting on Restricted (just you, plus
    anyone you explicitly add as an Editor — same lockdown as the
@@ -84,9 +86,14 @@ stays the same.
 - One row per signup: the timestamp and the email, nothing else.
   No name, no message, no tracking.
 - **Deduped by address** (case-insensitive). A visitor who signs up
-  twice, or double-clicks Submit, gets one row.
+  twice, or double-clicks Submit, gets one row. The dedup check and
+  the append run under a script lock, so two identical signups
+  arriving at the same moment cannot both slip through.
 - **No notification email by default.** The Sheet is the list. If
-  you set `NOTIFY_EMAIL`, you get one email per signup instead.
+  you set `NOTIFY_EMAIL`, you get one email per signup instead. A
+  failed notification email never fails the signup itself — the row
+  is already saved, and the failure is logged in the Apps Script
+  **Executions** log.
 - The page validates the address in the browser first (same check
   the script runs again server-side), and the script answers plain
   `'ok'` — the page only shows "You're on the list" when the server
@@ -109,6 +116,7 @@ the launch date is real.
 |---|---|---|
 | "Signups aren't open just yet" | `LAUNCH_LIST_ENDPOINT` is still blank in `index.html` | Paste the Web app URL (step 4) and push. |
 | "Something went wrong — please try again" | The script errored or the URL is wrong | Open the Web app URL in a browser — it should show "WhenWhere launch list — POST an email to join." If it doesn't, the deployment is wrong (step 3). Then check the Apps Script **Executions** log for the error. |
+| "That’s taking too long — please try again" | The script took over 15 seconds to answer (slow first run, or a very large list making the dedup scan slow) | Try again — the server dedups, so a retry cannot create a second row. If it keeps happening, check the **Executions** log for how long each run takes. |
 | Page says "You're on the list" but no row appears | A duplicate address (deduped — expected), or the row went to a different Sheet | Check the `Launch list` tab in the Sheet the script is bound to. If you pasted the script into the wrong Sheet, move it. |
 | The form does nothing at all | JavaScript error, or the endpoint never got set | Open the browser console for the error; check `WHENWHERE_CONFIG` is above the main script and the URL ends in `/exec`. |
 

@@ -34,7 +34,7 @@ ready — one page, one job: collect emails for the launch list.
 
 ## Screenshot
 
-Captured from the page at 1280×900 in dark mode (the page follows
+Captured from the page at 1280×700 in dark mode (the page follows
 the OS — the light rendering is the same layout in warm ivory).
 Serve the folder over HTTP first so the fonts load.
 
@@ -52,7 +52,13 @@ python3 -m http.server 8000
 
 Note: with `LAUNCH_LIST_ENDPOINT` still blank, the form tells
 visitors signups aren't open yet instead of silently dropping their
-email. Wire the endpoint first (below), then push.
+email. Wire the endpoint first (below), then push. The URL goes in
+two places that must stay in sync: `LAUNCH_LIST_ENDPOINT` in
+`WHENWHERE_CONFIG` (the JavaScript path) and the form's `action`
+(the no-JavaScript fallback, which posts straight to the same
+endpoint). A signup that takes longer than 15 seconds reports
+"That’s taking too long" and can be retried — the server dedups,
+so a retry never creates a second row.
 
 ## Launch-list setup
 
