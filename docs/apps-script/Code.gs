@@ -345,13 +345,12 @@ function buildNotifyEmail(email, total, submittedText, sheetUrl) {
  * calls — so the wording and the escaping can be tested without a
  * live Sheet.
  *
- * The copy echoes the page's own promise ("We'll email you the
- * moment we launch"), and says nothing else about the list: no
- * running total and no Sheet link — those are owner-only. It names
- * the address it was sent to and tells the recipient to ignore it
- * if the signup wasn't theirs, because anyone can type someone
- * else's address into the form and this mail must be harmless to
- * a stranger. Same navy/gold inline styling as the notification.
+ * The copy states the honest total — this confirmation plus one
+ * launch email, two emails in all — and offers removal by reply:
+ * replies land in the owner's Gmail, and removing someone is
+ * deleting their row from the Sheet. That is the unsubscribe
+ * until the launch mail tool takes over. Same navy/gold inline
+ * styling as the notification.
  *
  * @param {string} email The normalised (trimmed, lower-cased) address.
  * @return {{subject: string, body: string, htmlBody: string}} The
@@ -361,11 +360,13 @@ function buildConfirmEmail(email) {
   var safeEmail = escapeHtml(email);
   var subject = "You're on the WhenWhere launch list";
   var body = "You're on the WhenWhere launch list.\n\n" +
-    "We'll email you the moment we launch — one email when the " +
-    'doors open, and nothing else.\n\n' +
+    "We'll email you when we launch — one more email, and that's " +
+    'everything.\n\n' +
     'This email was sent to ' + email + ' because someone signed ' +
     "up with that address. If that wasn't you, you can safely " +
-    'ignore it — nothing else will be sent.\n\n' +
+    "ignore it — you won't hear from us again.\n\n" +
+    "Want off the list? Just reply to this email and we'll remove " +
+    'you.\n\n' +
     '— WhenWhere\n' +
     'whenwhere.biz';
   var htmlBody =
@@ -375,12 +376,13 @@ function buildConfirmEmail(email) {
     '<div style="background:#f6f1e6;padding:20px;">' +
     '<p style="margin:0 0 8px;font-size:18px;"><strong>You&rsquo;re on the list</strong></p>' +
     '<p style="margin:0 0 8px;font-family:Arial,sans-serif;font-size:14px;">' +
-    'We&rsquo;ll email you the moment we launch &mdash; one email when the ' +
-    'doors open, and nothing else.</p>' +
-    '<p style="margin:0 0 20px;font-family:Arial,sans-serif;font-size:14px;color:#454d6e;">' +
+    'We&rsquo;ll email you when we launch &mdash; one more email, and that&rsquo;s everything.</p>' +
+    '<p style="margin:0 0 8px;font-family:Arial,sans-serif;font-size:14px;color:#454d6e;">' +
     'This email was sent to <strong>' + safeEmail + '</strong> because someone ' +
     'signed up with that address. If that wasn&rsquo;t you, you can safely ' +
-    'ignore it &mdash; nothing else will be sent.</p>' +
+    'ignore it &mdash; you won&rsquo;t hear from us again.</p>' +
+    '<p style="margin:0 0 20px;font-family:Arial,sans-serif;font-size:14px;color:#454d6e;">' +
+    'Want off the list? Just reply to this email and we&rsquo;ll remove you.</p>' +
     '<p style="margin:0;"><a href="https://whenwhere.biz" ' +
     'style="display:inline-block;background:#d9a441;color:#131a38;' +
     'padding:10px 18px;border-radius:999px;text-decoration:none;' +
