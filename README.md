@@ -119,9 +119,10 @@ whenwhere-biz-coming-soon/
 │       └── pages.yml           # deploy on push to main
 ├── docs/
 │   ├── LAUNCH-LIST-SETUP.md    # private Sheet + Apps Script setup, testing, troubleshooting
+│   ├── LAUNCH-LIST-PIPELINE.md # how one signup travels: form → Sheet → emails → launch
 │   ├── CUSTOM-DOMAIN.md        # point whenwhere.biz at this page (DNS + HTTPS)
 │   ├── screenshots/
-│   │   └── hero.png            # README hero shot (1280×900, dark mode)
+│   │   └── hero.png            # README hero shot (1280×700, dark mode)
 │   └── apps-script/
 │       └── Code.gs             # Apps Script doPost for the launch-list Sheet
 ├── index.html                  # the page

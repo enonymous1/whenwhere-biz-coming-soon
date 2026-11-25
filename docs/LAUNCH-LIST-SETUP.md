@@ -143,7 +143,9 @@ list, or a mailing tool (Buttondown, Mailchimp, ConvertKit) if the
 list is big enough to want unsubscribes and delivery tracking. The
 list is a plain two-column CSV, so it imports anywhere. There is
 nothing to set up now for that step; decide the sending tool when
-the launch date is real.
+the launch date is real. The full launch run — and everything that
+happens to the list before then — is in
+`docs/LAUNCH-LIST-PIPELINE.md`.
 
 ## Troubleshooting
 
