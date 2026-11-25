@@ -15,23 +15,19 @@ on:
     branches: [main]
   workflow_dispatch:
 
-# The starter-workflow permission set: Pages deploy needs Pages write
-# + OIDC.
+# Least privilege per job: the build job only reads the repo
+# (inherited from here); the deploy job adds Pages write + OIDC
+# in its own permissions block below.
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
   group: pages
   cancel-in-progress: false
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -44,6 +40,36 @@ jobs:
         with:
           path: '.'
 
+  # Deploy is its own job. Two reasons, both learned the hard way:
+  #
+  # 1. A re-run of the deploy job alone never re-uploads the
+  #    artifact, so a re-run can never produce the "multiple
+  #    artifacts named github-pages" failure that re-running a
+  #    single build-and-deploy job causes (each attempt uploads
+  #    another copy onto the same run, and deploy-pages refuses
+  #    to pick one).
+  #
+  # 2. The job handoff puts a gap between the upload and the
+  #    deploy step's artifact lookup, which the single-job layout
+  #    lacked when run 45584574599's deploy found 0 artifacts
+  #    three times in a row with the artifact present and
+  #    finalised (164,774 bytes, ID 15008407485). Honest caveat:
+  #    the split does not guarantee the visibility lag is gone —
+  #    if a deploy still finds 0 artifacts, the next move is a
+  #    poll step that waits until the API lists `github-pages`
+  #    before deploying, not another re-run.
+  #
+  # No checkout here: deploy-pages only needs the uploaded artifact.
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v5
