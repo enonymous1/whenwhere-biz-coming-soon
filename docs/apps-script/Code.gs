@@ -48,10 +48,12 @@
  * launch", so this is that promise arriving. Same navy/gold
  * inline styling as the notification, but no running total and
  * no Sheet link (those are owner-only). It names the address it
- * was sent to and says to ignore it if the signup wasn't theirs:
- * anyone can type someone else's address into the form, so the
- * mail must be harmless to a stranger. A deduped repeat sends
- * nothing. Both emails go out via MailApp, which means they come
+ * was sent to and routes both cases to one reply: if the signup
+ * wasn't theirs, or they'd like to be removed, just reply and
+ * the row is deleted. (An earlier draft told a mistaken
+ * recipient to ignore it — but an ignored address would still
+ * get the launch email, so ignoring was the one thing that
+ * didn't work.) A deduped repeat sends nothing. Both emails go out via MailApp, which means they come
  * from the Gmail account the script runs as — the owner's
  * personal Gmail, for now. Sending from hello@whenwhere.biz
  * needs a verified Gmail alias for that address plus a switch
@@ -363,10 +365,9 @@ function buildConfirmEmail(email) {
     "We'll email you when we launch — one more email, and that's " +
     'everything.\n\n' +
     'This email was sent to ' + email + ' because someone signed ' +
-    "up with that address. If that wasn't you, you can safely " +
-    "ignore it — you won't hear from us again.\n\n" +
-    "Want off the list? Just reply to this email and we'll remove " +
-    'you.\n\n' +
+    "up with that address. If that wasn't you, or you'd like to " +
+    "be removed, just reply to this email — we'll take you off " +
+    'the list.\n\n' +
     '— WhenWhere\n' +
     'whenwhere.biz';
   var htmlBody =
@@ -377,12 +378,10 @@ function buildConfirmEmail(email) {
     '<p style="margin:0 0 8px;font-size:18px;"><strong>You&rsquo;re on the list</strong></p>' +
     '<p style="margin:0 0 8px;font-family:Arial,sans-serif;font-size:14px;">' +
     'We&rsquo;ll email you when we launch &mdash; one more email, and that&rsquo;s everything.</p>' +
-    '<p style="margin:0 0 8px;font-family:Arial,sans-serif;font-size:14px;color:#454d6e;">' +
-    'This email was sent to <strong>' + safeEmail + '</strong> because someone ' +
-    'signed up with that address. If that wasn&rsquo;t you, you can safely ' +
-    'ignore it &mdash; you won&rsquo;t hear from us again.</p>' +
     '<p style="margin:0 0 20px;font-family:Arial,sans-serif;font-size:14px;color:#454d6e;">' +
-    'Want off the list? Just reply to this email and we&rsquo;ll remove you.</p>' +
+    'This email was sent to <strong>' + safeEmail + '</strong> because someone ' +
+    'signed up with that address. If that wasn&rsquo;t you, or you&rsquo;d like to be ' +
+    'removed, just reply to this email &mdash; we&rsquo;ll take you off the list.</p>' +
     '<p style="margin:0;"><a href="https://whenwhere.biz" ' +
     'style="display:inline-block;background:#d9a441;color:#131a38;' +
     'padding:10px 18px;border-radius:999px;text-decoration:none;' +

@@ -100,14 +100,17 @@ stays the same.
   list". It states the honest total — this confirmation plus one
   launch email, two emails in all — with a gold "Visit
   WhenWhere.biz" button. It names the address it was sent to and
-  says to ignore it if the signup wasn't theirs — anyone can type
-  someone else's address into the form, so the mail has to be
-  harmless to a stranger. It carries no running total and no Sheet
-  link (those are owner-only). A repeat signup sends nothing.
-  **Removal:** the email offers removal by reply — replies land
-  in your Gmail, and removing someone is deleting their row from
-  the Sheet. That is the unsubscribe until the launch mail tool
-  (which carries its own unsubscribe link) takes over.
+  routes both cases to one reply: if the signup wasn't theirs,
+  or they'd like to be removed, just reply and the row is
+  deleted. (It deliberately does not tell a mistaken recipient
+  to ignore it — an ignored address would still get the launch
+  email.) It carries no running total and no Sheet link (those
+  are owner-only). A repeat signup sends nothing.
+  **Removal:** replies asking to be removed — or saying the
+  signup wasn't theirs — land in your Gmail, and removing
+  someone is deleting their row from the Sheet. That is the
+  unsubscribe until the launch mail tool (which carries its own
+  unsubscribe link) takes over.
   **From address:** both emails come from the Gmail account the
   script runs as — your personal Gmail, for now. Sending from
   `hello@whenwhere.biz` needs a mailbox for that address first
