@@ -6,9 +6,12 @@
  * Sheet):
  *   Extensions → Apps Script, replace the default Code.gs contents.
  *
- * 1. Change NOTIFY_EMAIL at the top below only if you want an email
- *    per signup. Leave it blank and the Sheet is the only record —
- *    no per-signup email noise. The list lives in the Sheet either way.
+ * 1. Change the two settings at the top below. NOTIFY_EMAIL: put
+ *    your Gmail there if you want one email per signup; leave it
+ *    blank and the Sheet is the only record — no per-signup email
+ *    noise. SEND_CONFIRMATION: on by default — each new signup
+ *    also gets a short confirmation email (see below). The list
+ *    lives in the Sheet either way.
  * 2. Deploy → New deployment → Web app
  *      Execute as: Me
  *      Who has access: Anyone
@@ -38,6 +41,28 @@
  * `<style>` blocks and external fonts/images, so there is no
  * stylesheet, logo, or tracking pixel to strip). The address is
  * HTML-escaped before it goes into the HTML version.
+ *
+ * Subscriber confirmation (2026-11-25): when SEND_CONFIRMATION
+ * is on, each NEW signup also gets a short confirmation email —
+ * the page already promises "We'll email you the moment we
+ * launch", so this is that promise arriving. Same navy/gold
+ * inline styling as the notification, but no running total and
+ * no Sheet link (those are owner-only). It names the address it
+ * was sent to and says to ignore it if the signup wasn't theirs:
+ * anyone can type someone else's address into the form, so the
+ * mail must be harmless to a stranger. A deduped repeat sends
+ * nothing. Both emails go out via MailApp, which means they come
+ * from the Gmail account the script runs as — the owner's
+ * personal Gmail, for now. Sending from hello@whenwhere.biz
+ * needs a verified Gmail alias for that address plus a switch
+ * to GmailApp.sendEmail({from: ...}); that is a later change,
+ * not a code tweak (see LAUNCH-LIST-SETUP.md).
+ *
+ * Quota note: Apps Script counts recipients, not emails — a
+ * consumer Gmail account gets 100 recipients a day, so with
+ * both emails on, one signup costs two recipients and the day's
+ * budget covers 50 signups. Both sends are best-effort and
+ * logged; the signup itself never depends on either.
  *
  * Response contract (the page depends on this — do not change it
  * without changing index.html in step):
@@ -85,6 +110,13 @@
 
 /** Blank = no per-signup email; put your Gmail here to get one per signup. */
 var NOTIFY_EMAIL = '';
+/**
+ * On = each new signup also gets a short confirmation email (see
+ * buildConfirmEmail). Sent from the Gmail account this script
+ * runs as, via MailApp — until a hello@whenwhere.biz alias exists
+ * and the sends move to GmailApp, there is no prettier From.
+ */
+var SEND_CONFIRMATION = true;
 /** Tab holding the launch list. Created on first submit if missing. */
 var SHEET_TAB = 'Launch list';
 /** Header row, written to an empty tab (or inserted above headerless data). */
@@ -188,6 +220,29 @@ function doPost(e) {
     var submittedText = Utilities.formatDate(
       submitted, Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm');
 
+    // The confirmation goes first, then the owner notification
+    // below: the page promises the visitor an email ("We'll email
+    // you the moment we launch"), so when the day's mail quota is
+    // nearly out, the visitor's email gets the remaining sends
+    // first — the owner always has the Sheet as the record.
+    // Best-effort, like the notification: a failure is logged,
+    // never returned (the row above is already saved). Deduped
+    // repeats never reach this code (they returned 'ok' above),
+    // so nobody gets a second confirmation.
+    if (SEND_CONFIRMATION) {
+      try {
+        var confirm = buildConfirmEmail(email);
+        MailApp.sendEmail({
+          to: email,
+          subject: confirm.subject,
+          body: confirm.body,
+          htmlBody: confirm.htmlBody
+        });
+      } catch (confirmErr) {
+        Logger.log('Launch-list confirmation email failed for %s: %s', email, confirmErr);
+      }
+    }
+
     // Notification is best-effort and must never fail the signup:
     // the row above is already saved, so a mail failure (bad
     // NOTIFY_EMAIL, daily quota) is logged, not returned as an
@@ -280,6 +335,57 @@ function buildNotifyEmail(email, total, submittedText, sheetUrl) {
     '<p style="margin:0;font-family:Arial,sans-serif;font-size:14px;color:#454d6e;">' +
     'Submitted: ' + escapeHtml(submittedText) + '</p>' +
     link +
+    '</div></div>';
+  return { subject: subject, body: body, htmlBody: htmlBody };
+}
+
+/**
+ * Builds the confirmation email to the new subscriber (plain text
+ * + HTML). Pure, like buildNotifyEmail — no SpreadsheetApp/MailApp
+ * calls — so the wording and the escaping can be tested without a
+ * live Sheet.
+ *
+ * The copy echoes the page's own promise ("We'll email you the
+ * moment we launch"), and says nothing else about the list: no
+ * running total and no Sheet link — those are owner-only. It names
+ * the address it was sent to and tells the recipient to ignore it
+ * if the signup wasn't theirs, because anyone can type someone
+ * else's address into the form and this mail must be harmless to
+ * a stranger. Same navy/gold inline styling as the notification.
+ *
+ * @param {string} email The normalised (trimmed, lower-cased) address.
+ * @return {{subject: string, body: string, htmlBody: string}} The
+ *     three parts MailApp.sendEmail takes.
+ */
+function buildConfirmEmail(email) {
+  var safeEmail = escapeHtml(email);
+  var subject = "You're on the WhenWhere launch list";
+  var body = "You're on the WhenWhere launch list.\n\n" +
+    "We'll email you the moment we launch — one email when the " +
+    'doors open, and nothing else.\n\n' +
+    'This email was sent to ' + email + ' because someone signed ' +
+    "up with that address. If that wasn't you, you can safely " +
+    'ignore it — nothing else will be sent.\n\n' +
+    '— WhenWhere\n' +
+    'whenwhere.biz';
+  var htmlBody =
+    '<div style="font-family:Georgia,serif;color:#131a38;max-width:480px;">' +
+    '<div style="background:#060a1a;color:#f2ead6;padding:16px 20px;' +
+    'font-size:18px;letter-spacing:0.18em;">WHEN<span style="color:#d9a441;">WHERE</span></div>' +
+    '<div style="background:#f6f1e6;padding:20px;">' +
+    '<p style="margin:0 0 8px;font-size:18px;"><strong>You&rsquo;re on the list</strong></p>' +
+    '<p style="margin:0 0 8px;font-family:Arial,sans-serif;font-size:14px;">' +
+    'We&rsquo;ll email you the moment we launch &mdash; one email when the ' +
+    'doors open, and nothing else.</p>' +
+    '<p style="margin:0 0 20px;font-family:Arial,sans-serif;font-size:14px;color:#454d6e;">' +
+    'This email was sent to <strong>' + safeEmail + '</strong> because someone ' +
+    'signed up with that address. If that wasn&rsquo;t you, you can safely ' +
+    'ignore it &mdash; nothing else will be sent.</p>' +
+    '<p style="margin:0;"><a href="https://whenwhere.biz" ' +
+    'style="display:inline-block;background:#d9a441;color:#131a38;' +
+    'padding:10px 18px;border-radius:999px;text-decoration:none;' +
+    'font-family:Arial,sans-serif;font-size:14px;">' +
+    'Visit WhenWhere.biz</a></p>' +
     '</div></div>';
   return { subject: subject, body: body, htmlBody: htmlBody };
 }

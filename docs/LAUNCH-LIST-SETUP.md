@@ -37,11 +37,15 @@ one field.
    opens with a default `Code.gs`.
 2. Delete the default contents and paste in the whole of
    `docs/apps-script/Code.gs` from this repo.
-3. Save (Ctrl/Cmd+S). There is one setting at the top:
-   `NOTIFY_EMAIL`. Leave it blank and the Sheet is the only record
-   — no per-signup email. Put your Gmail there if you want one
-   email per signup (useful while testing; noisy once the list
-   grows).
+3. Save (Ctrl/Cmd+S). There are two settings at the top:
+   `NOTIFY_EMAIL` — leave it blank and the Sheet is the only
+   record, no per-signup email. Put your Gmail there if you want
+   one email per signup (useful while testing; noisy once the
+   list grows). `SEND_CONFIRMATION` — on by default: each new
+   signup also gets a short confirmation email from your Gmail
+   (the page promises "We'll email you the moment we launch").
+   Set it to `false` to stop the confirmations; the Sheet still
+   records every signup either way.
 
 ### 3. Deploy it as a Web app
 
@@ -51,9 +55,11 @@ one field.
    has to accept posts from anyone. The script only ever writes one
    email address to your Sheet — it cannot read or change anything
    else.)
-4. **Deploy**, authorize when asked (the script needs permission to
-   edit this Sheet and, only if you set `NOTIFY_EMAIL`, to send mail
-   as you), and copy the Web app URL. It ends in `/exec`.
+4. **Deploy**, authorize when asked (the script needs permission
+   to edit this Sheet and to send mail as you — the confirmation
+   email is on by default, so the mail permission is asked for
+   even with `NOTIFY_EMAIL` blank), and copy the Web app URL. It
+   ends in `/exec`.
 
 ### 4. Paste the URL into the page
 
@@ -89,13 +95,32 @@ stays the same.
   twice, or double-clicks Submit, gets one row. The dedup check and
   the append run under a script lock, so two identical signups
   arriving at the same moment cannot both slip through.
-- **No notification email by default.** The Sheet is the list. If
-  you set `NOTIFY_EMAIL`, you get one email per signup instead. A
-  failed notification email never fails the signup itself — the row
-  is already saved, and the failure is logged in the Apps Script
-  **Executions** log. Each notification shows the new address, the
-  running total on the list, when they signed up, and a link back
-  to the Sheet (plain text plus a lightly styled HTML version).
+- **Confirmation email, on by default.** Each new signup gets a
+  short email from your Gmail: "You're on the WhenWhere launch
+  list", echoing the page's promise, with a gold "Visit
+  WhenWhere.biz" button. It names the address it was sent to and
+  says to ignore it if the signup wasn't theirs — anyone can type
+  someone else's address into the form, so the mail has to be
+  harmless to a stranger. It carries no running total and no Sheet
+  link (those are owner-only). A repeat signup sends nothing.
+  **From address:** both emails come from the Gmail account the
+  script runs as — your personal Gmail, for now. Sending from
+  `hello@whenwhere.biz` needs a mailbox for that address first
+  (there is none yet), then a verified Gmail "Send mail as" alias
+  for it, and a switch in `Code.gs` from `MailApp` to
+  `GmailApp.sendEmail({ from: ... })`. That is a later change, not
+  a settings tweak. **Quota:** Apps Script counts recipients, not
+  emails — a consumer Gmail account gets 100 a day, so with both
+  emails on, one signup costs two recipients and the day's budget
+  covers 50 signups.
+- **Owner notification, off by default.** The Sheet is the list.
+  If you set `NOTIFY_EMAIL`, you get one email per signup instead.
+  A failed email (owner notification or subscriber confirmation)
+  never fails the signup itself — the row is already saved, and
+  the failure is logged in the Apps Script **Executions** log.
+  Each notification shows the new address, the running total on
+  the list, when they signed up, and a link back to the Sheet
+  (plain text plus a lightly styled HTML version).
 - The page validates the address in the browser first (same check
   the script runs again server-side), and the script answers plain
   `'ok'` — the page only shows "You're on the list" when the server
@@ -120,6 +145,7 @@ the launch date is real.
 | "Something went wrong — please try again" | The script errored or the URL is wrong | Open the Web app URL in a browser — it should show "WhenWhere launch list — POST an email to join." If it doesn't, the deployment is wrong (step 3). Then check the Apps Script **Executions** log for the error. |
 | "That’s taking too long — please try again" | The script took over 15 seconds to answer (slow first run, or a very large list making the dedup scan slow) | Try again — the server dedups, so a retry cannot create a second row. If it keeps happening, check the **Executions** log for how long each run takes. |
 | Page says "You're on the list" but no row appears | A duplicate address (deduped — expected), or the row went to a different Sheet | Check the `Launch list` tab in the Sheet the script is bound to. If you pasted the script into the wrong Sheet, move it. |
+| Signed up but got no confirmation email | `SEND_CONFIRMATION` is off, the mail went to spam, or the day's 100-recipient quota is used up (each signup costs two recipients while both emails are on) | Check spam first, then `SEND_CONFIRMATION` at the top of `Code.gs`, then the Apps Script **Executions** log — a failed send is logged there, and the signup itself is unaffected. |
 | The form does nothing at all | JavaScript error, or the endpoint never got set | Open the browser console for the error; check `WHENWHERE_CONFIG` is above the main script and the URL ends in `/exec`. |
 
 ## Why this instead of a mailing-list service
