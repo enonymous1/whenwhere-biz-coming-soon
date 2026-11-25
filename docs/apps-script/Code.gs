@@ -1,5 +1,5 @@
 /**
- * WhenWhere.biz — launch-list signup backend (Google Apps Script).
+ * When&Where.biz — launch-list signup backend (Google Apps Script).
  *
  * Paste this whole file into a NEW, PRIVATE Google Sheet (the launch
  * list — not the public availability Sheet, not the private bookings
@@ -56,7 +56,7 @@
  * didn't work.) A deduped repeat sends nothing. Both emails go
  * out via MailApp, which means they come from the Gmail account
  * the script runs as — the owner's personal Gmail, for now —
- * but both carry the display name `WhenWhere.biz` (the `name`
+ * but both carry the display name `When&Where.biz` (the `name`
  * option on each send), so that is what the recipient's inbox
  * shows, exactly like the main site's emails. Sending from
  * hello@whenwhere.biz needs a verified Gmail alias for that
@@ -165,7 +165,7 @@ var LOCK_TIMEOUT_MS = 10000;
  */
 function doGet() {
   return ContentService.createTextOutput(
-    'WhenWhere launch list — POST an email to join.');
+    'When&Where launch list — POST an email to join.');
 }
 
 /**
@@ -243,7 +243,7 @@ function doPost(e) {
           subject: confirm.subject,
           body: confirm.body,
           htmlBody: confirm.htmlBody,
-          name: 'WhenWhere.biz'
+          name: 'When&Where.biz'
         });
       } catch (confirmErr) {
         Logger.log('Launch-list confirmation email failed for %s: %s', email, confirmErr);
@@ -265,7 +265,7 @@ function doPost(e) {
           subject: notify.subject,
           body: notify.body,
           htmlBody: notify.htmlBody,
-          name: 'WhenWhere.biz'
+          name: 'When&Where.biz'
         });
       } catch (mailErr) {
         Logger.log('Launch-list notify email failed for %s: %s', email, mailErr);
@@ -318,8 +318,8 @@ function buildNotifyEmail(email, total, submittedText, sheetUrl) {
   // address — there is nothing to escape into there.
   var safeEmail = escapeHtml(email);
   var safeUrl = escapeHtml(sheetUrl);
-  var subject = 'New WhenWhere launch-list signup (#' + total + ')';
-  var body = 'New signup for the WhenWhere launch list:\n\n' +
+  var subject = 'New When&Where launch-list signup (#' + total + ')';
+  var body = 'New signup for the When&Where launch list:\n\n' +
     'Email: ' + email + '\n' +
     'Total on the list: ' + total + '\n' +
     'Submitted: ' + submittedText + '\n' +
@@ -336,7 +336,7 @@ function buildNotifyEmail(email, total, submittedText, sheetUrl) {
     'font-size:18px;letter-spacing:0.18em;">WHEN<span style="color:#d9a441;">WHERE</span></div>' +
     '<div style="background:#f6f1e6;padding:20px;">' +
     '<p style="margin:0 0 8px;font-family:Arial,sans-serif;font-size:14px;">' +
-    'New signup for the WhenWhere launch list</p>' +
+    'New signup for the When&Where launch list</p>' +
     '<p style="margin:0 0 8px;font-size:18px;"><strong>' + safeEmail + '</strong></p>' +
     '<p style="margin:0 0 4px;font-family:Arial,sans-serif;font-size:14px;">' +
     'Total on the list: <strong>' + total + '</strong></p>' +
@@ -366,15 +366,15 @@ function buildNotifyEmail(email, total, submittedText, sheetUrl) {
  */
 function buildConfirmEmail(email) {
   var safeEmail = escapeHtml(email);
-  var subject = "You're on the WhenWhere launch list";
-  var body = "You're on the WhenWhere launch list.\n\n" +
+  var subject = "You're on the When&Where launch list";
+  var body = "You're on the When&Where launch list.\n\n" +
     "We'll email you when we launch — one more email, and that's " +
     'everything.\n\n' +
     'This email was sent to ' + email + ' because someone signed ' +
     "up with that address. If that wasn't you, or you'd like to " +
     "be removed, just reply to this email — we'll take you off " +
     'the list.\n\n' +
-    '— WhenWhere\n' +
+    '— When&Where\n' +
     'whenwhere.biz';
   var htmlBody =
     '<div style="font-family:Georgia,serif;color:#131a38;max-width:480px;">' +
@@ -392,7 +392,7 @@ function buildConfirmEmail(email) {
     'style="display:inline-block;background:#d9a441;color:#131a38;' +
     'padding:10px 18px;border-radius:999px;text-decoration:none;' +
     'font-family:Arial,sans-serif;font-size:14px;">' +
-    'Visit WhenWhere.biz</a></p>' +
+    'Visit When&Where.biz</a></p>' +
     '</div></div>';
   return { subject: subject, body: body, htmlBody: htmlBody };
 }

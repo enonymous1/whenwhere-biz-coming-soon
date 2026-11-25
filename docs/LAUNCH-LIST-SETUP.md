@@ -20,7 +20,7 @@ one field.
 ### 1. Create the private Sheet
 
 1. In Google Sheets, create a new blank spreadsheet. Name it
-   something clear, e.g. **WhenWhere — Launch list**.
+   something clear, e.g. **When&Where — Launch list**.
 2. Leave it as it is — the script creates the `Launch list` tab and
    its header row (`Submitted | Email`) on the first signup. If the
    tab already has rows but no header row, the script inserts the
@@ -96,11 +96,11 @@ stays the same.
   the append run under a script lock, so two identical signups
   arriving at the same moment cannot both slip through.
 - **Confirmation email, on by default.** Each new signup gets a
-  short email from your Gmail: "You're on the WhenWhere launch
+  short email from your Gmail: "You're on the When&Where launch
   list". It states the honest total — this confirmation plus one
   launch email, two emails in all — with a gold "Visit
-  WhenWhere.biz" button. It shows in the recipient's inbox as
-  from **WhenWhere.biz** (the `name` option on the send — the
+  When&Where.biz" button. It shows in the recipient's inbox as
+  from **When&Where.biz** (the `name` option on the send — the
   address behind it is still your Gmail, same as the main
   site's emails). It names the address it was sent to and
   routes both cases to one reply: if the signup wasn't theirs,
@@ -155,7 +155,7 @@ happens to the list before then — is in
 | What you see | Likely cause | Fix |
 |---|---|---|
 | "Signups aren't open just yet" | `LAUNCH_LIST_ENDPOINT` is still blank in `index.html` | Paste the Web app URL (step 4) and push. |
-| "Something went wrong — please try again" | The script errored or the URL is wrong | Open the Web app URL in a browser — it should show "WhenWhere launch list — POST an email to join." If it doesn't, the deployment is wrong (step 3). Then check the Apps Script **Executions** log for the error. |
+| "Something went wrong — please try again" | The script errored or the URL is wrong | Open the Web app URL in a browser — it should show "When&Where launch list — POST an email to join." If it doesn't, the deployment is wrong (step 3). Then check the Apps Script **Executions** log for the error. |
 | "That’s taking too long — please try again" | The script took over 15 seconds to answer (slow first run, or a very large list making the dedup scan slow) | Try again — the server dedups, so a retry cannot create a second row. If it keeps happening, check the **Executions** log for how long each run takes. |
 | Page says "You're on the list" but no row appears | A duplicate address (deduped — expected), or the row went to a different Sheet | Check the `Launch list` tab in the Sheet the script is bound to. If you pasted the script into the wrong Sheet, move it. |
 | Signed up but got no confirmation email | `SEND_CONFIRMATION` is off, the mail went to spam, or the day's 100-recipient quota is used up (each signup costs two recipients while both emails are on) | Check spam first, then `SEND_CONFIRMATION` at the top of `Code.gs`, then the Apps Script **Executions** log — a failed send is logged there, and the signup itself is unaffected. |

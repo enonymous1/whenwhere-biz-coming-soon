@@ -1,6 +1,6 @@
-# WhenWhere.biz — Coming Soon
+# When&Where.biz — Coming Soon
 
-The coming-soon page for WhenWhere.biz: weddings, celebrations, and
+The coming-soon page for When&Where.biz: weddings, celebrations, and
 drone light shows across Charlottesville and Central Virginia. It is
 the placeholder that holds `whenwhere.biz` until the full site is
 ready — one page, one job: collect emails for the launch list.
@@ -14,7 +14,7 @@ ready — one page, one job: collect emails for the launch list.
   `#d9a441`, the same design system as the main site and the drone
   light shows page. The page follows the visitor's system: the night
   rendering in dark mode, warm ivory in light mode.
-- **WHENWHERE wordmark, "Coming Soon" headline, one line** covering
+- **WHEN&WHERE wordmark, "Coming Soon" headline, one line** covering
   weddings, celebrations, and drone light shows in Charlottesville
   and Central Virginia.
 - **A single email signup** — one field, one button ("Notify Me").
@@ -127,9 +127,9 @@ whenwhere-biz-coming-soon/
 │       └── Code.gs             # Apps Script doPost for the launch-list Sheet
 ├── index.html                  # the page
 ├── README.md
-└── LICENSE                     # © 2026 WhenWhere.biz, all rights reserved
+└── LICENSE                     # © 2026 When&Where.biz, all rights reserved
 ```
 
 ## License
 
-© 2026 WhenWhere.biz — All rights reserved. See `LICENSE`.
+© 2026 When&Where.biz — All rights reserved. See `LICENSE`.

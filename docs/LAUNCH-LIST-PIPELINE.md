@@ -1,4 +1,4 @@
-# WhenWhere.biz — Launch-List Pipeline & Workflow
+# When&Where.biz — Launch-List Pipeline & Workflow
 
 **What this is:** the journey of one signup on the coming-soon page,
 from a visitor finding the page to the launch email going out, told
@@ -52,7 +52,7 @@ Before any of this works, the manager has already done the following
 
 | Manager does | Where |
 |---|---|
-| Creates the **private launch-list Sheet** — e.g. `WhenWhere — Launch list`. Never published to web, Share on Restricted. It holds people's email addresses. | Google Sheets |
+| Creates the **private launch-list Sheet** — e.g. `When&Where — Launch list`. Never published to web, Share on Restricted. It holds people's email addresses. | Google Sheets |
 | Pastes `docs/apps-script/Code.gs` into the Sheet's Apps Script editor, leaves `SEND_CONFIRMATION` on, optionally sets `NOTIFY_EMAIL` to his personal Gmail, and deploys it as a web app (Execute as: Me, Who has access: Anyone). | Apps Script |
 | Puts the web app URL in the page as `LAUNCH_LIST_ENDPOINT` (in `WHENWHERE_CONFIG`, in two places — the config and the form's `action` — that must stay in sync). | `index.html` |
 | Points `whenwhere.biz` at the page and turns on Enforce HTTPS once DNS resolves. | `docs/CUSTOM-DOMAIN.md` |
@@ -124,7 +124,7 @@ sequenceDiagram
 
 Both emails go out via MailApp, which means both come **from the
 Gmail account the script runs as** — the manager's personal Gmail,
-for now — under the display name **WhenWhere.biz** (the `name`
+for now — under the display name **When&Where.biz** (the `name`
 option on each send, same as the main site's emails). Sending from
 `hello@whenwhere.biz` needs a mailbox for that address first
 (there is none yet), then a verified Gmail "Send mail as" alias
@@ -133,7 +133,7 @@ for it, and a switch in `Code.gs` from `MailApp` to
 
 ### The confirmation (to the visitor)
 
-- Subject: `You're on the WhenWhere launch list`.
+- Subject: `You're on the When&Where launch list`.
 - States the honest total — this confirmation plus one launch email,
   two emails in all: "We'll email you when we launch — one more
   email, and that's everything."
@@ -143,7 +143,7 @@ for it, and a switch in `Code.gs` from `MailApp` to
   does **not** tell a mistaken recipient to ignore it — an ignored
   address would still get the launch email.
 - Carries no running total and no Sheet link (those are owner-only),
-  and a gold "Visit WhenWhere.biz" button.
+  and a gold "Visit When&Where.biz" button.
 - Sent first, before the notification below: the page promises the
   visitor an email, so when the day's mail quota is nearly out, the
   visitor's email gets the remaining sends first — the manager
@@ -153,7 +153,7 @@ for it, and a switch in `Code.gs` from `MailApp` to
 
 - Only sent when `NOTIFY_EMAIL` is set; blank means the Sheet is the
   only record.
-- Subject: `New WhenWhere launch-list signup (#N)`, where N is the
+- Subject: `New When&Where launch-list signup (#N)`, where N is the
   running total on the list, exact under the script lock.
 - Lists the new address, the total, the submitted time, and ends
   with a link back to the private Sheet.
