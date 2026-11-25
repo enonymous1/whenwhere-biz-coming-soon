@@ -28,7 +28,7 @@ it runs day to day — and on launch day.
 flowchart TD
     subgraph Visitor
         A[Finds the coming-soon page] --> B[Enters an email, hits Notify Me]
-        B --> C[Sees "You're on the list"]
+        B --> C[Sees You're on the list]
         C --> D[Gets the confirmation email]
         D --> E[Gets the launch email, once, at launch]
     end
