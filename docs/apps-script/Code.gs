@@ -1,5 +1,5 @@
 /**
- * WhenWhere.biz — launch-list signup backend
+ * WhenWhere.biz — launch-list signup backend (Google Apps Script).
  *
  * Paste this whole file into a NEW, PRIVATE Google Sheet (the launch
  * list — not the public availability Sheet, not the private bookings
@@ -23,57 +23,254 @@
  *   Submitted | Email
  * A repeat signup from the same address is deduped — the page is
  * told 'ok' but no second row is written. If the tab already has
- * rows with no headers, insert a row at the top of the Sheet and
- * type those labels in — the script only writes headers to an empty
- * tab, it never rewrites row 1.
+ * rows with no headers, the script now inserts the header row at
+ * the top instead of silently treating the first data row as a
+ * header (the old behaviour — see {@link ensureSheet}).
  *
  * Keep this Sheet private (never publish it to the web). The page
  * only needs the Web app URL; nobody needs the Sheet link.
+ *
+ * Response contract (the page depends on this — do not change it
+ * without changing index.html in step):
+ *   - Success (including a deduped repeat): plain text `ok`.
+ *   - Anything else: plain text starting `error: `.
+ *   Apps Script always answers HTTP 200, even on rejection, so the
+ *   page reads the body, not the status. Error bodies are generic
+ *   on purpose: the detail goes to the Executions log (Logger.log),
+ *   not to an anonymous caller.
+ *
+ * Review history — reviewed 2026-11-25 against the shipped tip
+ * (commit beee9e0). Fixes applied in this copy, see REVIEW.md:
+ * [R11] Dedup + append now run under a script lock (LockService).
+ *       The old check-then-append had a race: two concurrent
+ *       duplicate POSTs could both pass the dedup scan and both
+ *       append. The lock makes the whole read-check-write atomic.
+ * [R12] A MailApp failure no longer reports the signup as failed.
+ *       The row was already appended; the old code threw after the
+ *       append, so the page said "something went wrong" for a
+ *       signup that had landed. Mail is now best-effort, logged.
+ * [R13] Error bodies no longer leak internals (`'error: ' + err`
+ *       used to hand the caller the raw exception, including sheet
+ *       and quota details). Callers get a generic message.
+ * [R14] Header handling: a tab with data but no header row gets
+ *       headers inserted at row 1 (was: row 1 silently treated as
+ *       the header, so that address was never deduped).
+ * [R15] Guards added: bound-sheet missing (standalone copy),
+ *       254-char email cap, formula-injection leading characters
+ *       (`=`, `+`, `-`, `@`) rejected, NOTIFY_EMAIL validated
+ *       before use instead of failing every signup.
+ *
+ * Known limits, deliberately left as-is (see REVIEW.md §3):
+ * - Dedup is an O(n) scan of column B on every signup. Fine for a
+ *   launch list (hundreds of rows); at thousands of rows it gets
+ *   slow, and the fix then is a second lookup tab or CacheService,
+ *   not a bigger scan.
+ * - No rate limiting or CAPTCHA: "Who has access: Anyone" means
+ *   anyone with the URL can POST. Google's quotas are the only
+ *   throttle. If spam ever lands, the fix is a token/honeypot in
+ *   the form, not a secret URL.
+ * - Only form-encoded POSTs are accepted (e.parameter). The page
+ *   sends URLSearchParams for exactly this reason; a JSON body
+ *   would arrive with an empty e.parameter and be rejected.
  */
 
-var NOTIFY_EMAIL = '';  // blank = no per-signup email; put your Gmail here to get one per signup
+/** Blank = no per-signup email; put your Gmail here to get one per signup. */
+var NOTIFY_EMAIL = '';
+/** Tab holding the launch list. Created on first submit if missing. */
 var SHEET_TAB = 'Launch list';
+/** Header row, written to an empty tab (or inserted above headerless data). */
 var HEADERS = ['Submitted', 'Email'];
 
+/**
+ * Maximum email length (RFC 5321/5322 path limit). Matches the
+ * `maxlength="254"` on the form field in index.html — keep the two
+ * in sync, so the page never promises an address the server rejects.
+ * @type {number}
+ */
+var MAX_EMAIL_LENGTH = 254;
+
+/**
+ * Email check, byte-identical to the one in index.html. It knowingly
+ * rejects a few valid addresses (1-character TLDs, quoted local
+ * parts, non-ASCII). Loosen one side without the other and the page
+ * will promise signups the server then rejects.
+ * @type {RegExp}
+ */
+var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+/**
+ * Leading characters that would let a Sheet treat the value as a
+ * formula when the CSV is opened elsewhere (formula/CSV injection).
+ * A legitimate address essentially never starts with one of these,
+ * so rejecting them costs nothing and closes the hole.
+ * @type {RegExp}
+ */
+var FORMULA_LEAD_RE = /^[=+\-@]/;
+
+/** How long doPost waits for the script lock before telling the caller to retry. */
+var LOCK_TIMEOUT_MS = 10000;
+
+/**
+ * Health-check endpoint. Open the Web app URL in a browser: this
+ * text means the deployment is live and reachable.
+ *
+ * @return {GoogleAppsScript.Content.TextOutput} Plain-text status line.
+ */
 function doGet() {
   return ContentService.createTextOutput(
     'WhenWhere launch list — POST an email to join.');
 }
 
+/**
+ * Records one launch-list signup.
+ *
+ * Accepts a form-encoded POST with a single `email` field, dedups
+ * it case-insensitively against column B, and appends
+ * `[timestamp, email]` when it is new. A repeat address returns
+ * `ok` with no second row, so a client retry after a timeout can
+ * never create a duplicate.
+ *
+ * The whole read-check-write runs under a script lock: without it,
+ * two concurrent duplicate POSTs can both pass the dedup scan
+ * before either appends, and the list gets two rows for one address.
+ *
+ * @param {GoogleAppsScript.Events.DoPost} e The POST event; only
+ *     `e.parameter.email` (form-encoded) is read.
+ * @return {GoogleAppsScript.Content.TextOutput} Plain text `ok` on
+ *     success (including deduped repeats), or a generic
+ *     `error: …` message on failure. Always HTTP 200 — the page
+ *     reads the body, not the status.
+ */
 function doPost(e) {
+  var lock = LockService.getScriptLock();
+  var locked = false;
   try {
+    // Serialise the dedup check + append (see the JSDoc above).
+    // If the lock is busy, tell the caller to retry rather than
+    // risking a duplicate row — the page's retry is dedup-safe.
+    locked = lock.tryLock(LOCK_TIMEOUT_MS);
+    if (!locked) {
+      return ContentService.createTextOutput('error: busy, please retry');
+    }
+
     var email = String((e && e.parameter && e.parameter.email) || '').trim().toLowerCase();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+    if (email.length === 0 || email.length > MAX_EMAIL_LENGTH ||
+        FORMULA_LEAD_RE.test(email) || !EMAIL_RE.test(email)) {
       return ContentService.createTextOutput('error: invalid email');
     }
 
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var sheet = ss.getSheetByName(SHEET_TAB);
-    if (!sheet) sheet = ss.insertSheet(SHEET_TAB);
-    if (sheet.getLastRow() === 0) sheet.appendRow(HEADERS);
-
-    // Dedup: same address (case-insensitive) already on the list.
-    var last = sheet.getLastRow();
-    if (last > 1) {
-      var existing = sheet.getRange(2, 2, last - 1, 1).getValues();
-      for (var i = 0; i < existing.length; i++) {
-        if (String(existing[i][0]).trim().toLowerCase() === email) {
-          return ContentService.createTextOutput('ok');
-        }
-      }
+    var sheet = ensureSheet();
+    if (isDuplicate(sheet, email)) {
+      return ContentService.createTextOutput('ok');
     }
 
+    // new Date() uses the script's timezone (Project Settings →
+    // Time zone, defaulting to the Sheet's). The Sheet displays it
+    // in that zone; if the list is ever exported for another
+    // timezone, convert at export time, not here.
     sheet.appendRow([new Date(), email]);
 
-    if (NOTIFY_EMAIL) {
-      MailApp.sendEmail({
-        to: NOTIFY_EMAIL,
-        subject: 'New WhenWhere launch-list signup',
-        body: 'New signup for the WhenWhere launch list:\n\nEmail: ' + email + '\n'
-      });
+    // Notification is best-effort and must never fail the signup:
+    // the row above is already saved, so a mail failure (bad
+    // NOTIFY_EMAIL, daily quota) is logged, not returned as an
+    // error — otherwise the page would report failure for a
+    // signup that landed, and the visitor's retry would look
+    // like a second failure.
+    if (NOTIFY_EMAIL && EMAIL_RE.test(NOTIFY_EMAIL)) {
+      try {
+        MailApp.sendEmail({
+          to: NOTIFY_EMAIL,
+          subject: 'New WhenWhere launch-list signup',
+          body: 'New signup for the WhenWhere launch list:\n\nEmail: ' + email + '\n'
+        });
+      } catch (mailErr) {
+        Logger.log('Launch-list notify email failed for %s: %s', email, mailErr);
+      }
+    } else if (NOTIFY_EMAIL) {
+      Logger.log('Launch-list NOTIFY_EMAIL is not a valid email address; skipping notification.');
     }
     return ContentService.createTextOutput('ok');
   } catch (err) {
-    return ContentService.createTextOutput('error: ' + err);
+    // Log the detail where the owner can see it (Executions log)
+    // and give the caller a generic message. The old code returned
+    // 'error: ' + err, handing an anonymous caller the raw
+    // exception — sheet names, quota errors, stack fragments.
+    Logger.log('Launch-list doPost failed: %s', err);
+    return ContentService.createTextOutput('error: unavailable, please try again');
+  } finally {
+    if (locked) lock.releaseLock();
   }
+}
+
+/**
+ * Returns the launch-list tab, creating it (with headers) if needed.
+ *
+ * Handles three states, because the tab's history is not guaranteed:
+ * missing → create + headers; empty → headers; has rows but row 1
+ * is not the header row → insert headers at the top. The last case
+ * is the fix for the old behaviour, which silently treated the
+ * first data row as the header — that address was then never
+ * deduped, and every later signup compared against the wrong rows.
+ *
+ * @return {GoogleAppsScript.Spreadsheet.Sheet} The launch-list tab.
+ * @throws {Error} If this script is not bound to a spreadsheet
+ *     (e.g. pasted into a standalone script), so the caller gets a
+ *     clean error instead of a null-dereference downstream.
+ */
+function ensureSheet() {
+  // getActiveSpreadsheet() is null in a standalone script. This
+  // script is only ever meant to be bound to the launch-list Sheet,
+  // so fail loudly here rather than crashing on getSheetByName.
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  if (!ss) {
+    throw new Error('Launch-list script is not bound to a spreadsheet');
+  }
+  var sheet = ss.getSheetByName(SHEET_TAB);
+  if (!sheet) {
+    sheet = ss.insertSheet(SHEET_TAB);
+  }
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(HEADERS);
+    return sheet;
+  }
+  var firstRow = sheet.getRange(1, 1, 1, HEADERS.length).getValues()[0];
+  var hasHeaders = true;
+  for (var i = 0; i < HEADERS.length; i++) {
+    if (String(firstRow[i]).trim() !== HEADERS[i]) {
+      hasHeaders = false;
+      break;
+    }
+  }
+  if (!hasHeaders) {
+    sheet.insertRowBefore(1);
+    sheet.getRange(1, 1, 1, HEADERS.length).setValues([HEADERS]);
+  }
+  return sheet;
+}
+
+/**
+ * Case-insensitive dedup check against column B (Email).
+ *
+ * This is an O(n) scan of the whole column on every signup: one
+ * getValues() call, then a linear loop that exits on the first
+ * match. That is fine for a launch list (hundreds of rows) and is
+ * the simplest correct shape while the list is small. Do not "fix"
+ * it with a per-row getValue() loop — that would be n API calls
+ * instead of one. When the list reaches thousands of rows, replace
+ * this with a lookup tab or CacheService, not a bigger scan.
+ *
+ * @param {GoogleAppsScript.Spreadsheet.Sheet} sheet The launch-list tab.
+ * @param {string} email The normalised (trimmed, lower-cased) address.
+ * @return {boolean} True if the address is already on the list.
+ */
+function isDuplicate(sheet, email) {
+  var last = sheet.getLastRow();
+  if (last <= 1) return false; // headers only (or empty) — nothing to match
+  var existing = sheet.getRange(2, 2, last - 1, 1).getValues();
+  for (var i = 0; i < existing.length; i++) {
+    if (String(existing[i][0]).trim().toLowerCase() === email) {
+      return true;
+    }
+  }
+  return false;
 }
