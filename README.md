@@ -43,13 +43,20 @@ there.
   https://whenwherebiz.goatcounter.com. No cookies, no personal
   data, nothing shown on the page. See [Analytics](#analytics).
 
-## Screenshot
+## Screenshots
 
-Captured from the page at 1280×700 in dark mode (the page follows
-the OS — the light rendering is the same layout in warm ivory).
-Serve the folder over HTTP first so the fonts load.
+Captured from the page in dark mode (the page follows the OS — the
+light rendering is the same layout in warm ivory). Serve the folder
+over HTTP first so the fonts load.
 
-![Coming Soon — the wordmark, headline, and single email signup](docs/screenshots/hero.png)
+Desktop — 1920×1080, the most common desktop resolution:
+
+![Coming Soon on desktop — the wordmark, headline, and single email signup](docs/screenshots/hero-desktop.png)
+
+Mobile — 390×844, a typical phone viewport. The form stacks, the
+button goes full-width, and the email field centers:
+
+![Coming Soon on mobile — the same page, form stacked and button full-width](docs/screenshots/hero-mobile.png)
 
 ## Preview
 
@@ -164,7 +171,8 @@ whenwhere-biz-coming-soon/
 │   ├── LAUNCH-LIST-PIPELINE.md # how one signup travels: form → Sheet → emails → launch
 │   ├── CUSTOM-DOMAIN.md        # point whenwhere.biz at this page (DNS + HTTPS)
 │   └── screenshots/
-│       └── hero.png            # README hero shot (1280×700, dark mode)
+│       ├── hero-desktop.png    # README desktop shot (1920×1080, dark mode)
+│       └── hero-mobile.png     # README mobile shot (390×844, dark mode)
 ├── index.html                  # the page (markup + JSON-LD only)
 ├── style.css                   # all page styles, incl. the CSS starfield fallback
 ├── config.js                   # WHENWHERE_CONFIG (the launch-list endpoint)
