@@ -1,10 +1,11 @@
 # Deploy the WhenWhere.biz coming-soon page to GitHub Pages.
 #
-# A single self-contained index.html — no build step, no backend
-# server of its own. Every push to main deploys it as-is, so the live
-# page is always current with the repo. The email signup POSTs to an
-# Apps Script Web app (LAUNCH_LIST_ENDPOINT in index.html); the script
-# and its setup are in docs/.
+# A static page — no build step, no backend server of its own.
+# Split by language (index.html, style.css, config.js, app.js) so
+# GitHub's language stats read true. Every push to main deploys it
+# as-is, so the live page is always current with the repo. The email
+# signup POSTs to an Apps Script Web app (LAUNCH_LIST_ENDPOINT in
+# config.js); the script and its setup are in apps-script/ and docs/.
 #
 # One-time setup (repo owner): Settings -> Pages -> Build and deployment
 # -> Source: GitHub Actions. Then push to main and watch this run.

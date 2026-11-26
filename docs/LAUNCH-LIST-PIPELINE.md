@@ -53,8 +53,8 @@ Before any of this works, the manager has already done the following
 | Manager does | Where |
 |---|---|
 | Creates the **private launch-list Sheet** — e.g. `When&Where — Launch list`. Never published to web, Share on Restricted. It holds people's email addresses. | Google Sheets |
-| Pastes `docs/apps-script/Code.gs` into the Sheet's Apps Script editor, leaves `SEND_CONFIRMATION` on, optionally sets `NOTIFY_EMAIL` to his personal Gmail, and deploys it as a web app (Execute as: Me, Who has access: Anyone). | Apps Script |
-| Puts the web app URL in the page as `LAUNCH_LIST_ENDPOINT` (in `WHENWHERE_CONFIG`, in two places — the config and the form's `action` — that must stay in sync). | `index.html` |
+| Pastes `apps-script/Code.gs` into the Sheet's Apps Script editor, leaves `SEND_CONFIRMATION` on, optionally sets `NOTIFY_EMAIL` to his personal Gmail, and deploys it as a web app (Execute as: Me, Who has access: Anyone). | Apps Script |
+| Puts the web app URL in the page as `LAUNCH_LIST_ENDPOINT` (in `WHENWHERE_CONFIG` in `config.js`, and in the form's `action` in `index.html` — the two must stay in sync). | `config.js` + `index.html` |
 | Points `whenwhere.biz` at the page and turns on Enforce HTTPS once DNS resolves. | `docs/CUSTOM-DOMAIN.md` |
 
 ---

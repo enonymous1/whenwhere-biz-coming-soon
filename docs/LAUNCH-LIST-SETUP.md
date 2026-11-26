@@ -36,7 +36,7 @@ one field.
 1. In the Sheet: **Extensions → Apps Script**. A new script editor
    opens with a default `Code.gs`.
 2. Delete the default contents and paste in the whole of
-   `docs/apps-script/Code.gs` from this repo.
+   `apps-script/Code.gs` from this repo.
 3. Save (Ctrl/Cmd+S). There are two settings at the top:
    `NOTIFY_EMAIL` — leave it blank and the Sheet is the only
    record, no per-signup email. Put your Gmail there if you want
@@ -63,8 +63,7 @@ one field.
 
 ### 4. Paste the URL into the page
 
-1. In `index.html`, find `WHENWHERE_CONFIG` just above the main
-   script and paste the URL as `LAUNCH_LIST_ENDPOINT`:
+1. In `config.js`, find `WHENWHERE_CONFIG` and paste the URL as `LAUNCH_LIST_ENDPOINT`:
 
    ```js
    var WHENWHERE_CONFIG = {
@@ -154,12 +153,12 @@ happens to the list before then — is in
 
 | What you see | Likely cause | Fix |
 |---|---|---|
-| "Signups aren't open just yet" | `LAUNCH_LIST_ENDPOINT` is still blank in `index.html` | Paste the Web app URL (step 4) and push. |
+| "Signups aren't open just yet" | `LAUNCH_LIST_ENDPOINT` is still blank in `config.js` | Paste the Web app URL (step 4) and push. |
 | "Something went wrong — please try again" | The script errored or the URL is wrong | Open the Web app URL in a browser — it should show "When&Where launch list — POST an email to join." If it doesn't, the deployment is wrong (step 3). Then check the Apps Script **Executions** log for the error. |
 | "That’s taking too long — please try again" | The script took over 15 seconds to answer (slow first run, or a very large list making the dedup scan slow) | Try again — the server dedups, so a retry cannot create a second row. If it keeps happening, check the **Executions** log for how long each run takes. |
 | Page says "You're on the list" but no row appears | A duplicate address (deduped — expected), or the row went to a different Sheet | Check the `Launch list` tab in the Sheet the script is bound to. If you pasted the script into the wrong Sheet, move it. |
 | Signed up but got no confirmation email | `SEND_CONFIRMATION` is off, the mail went to spam, or the day's 100-recipient quota is used up (each signup costs two recipients while both emails are on) | Check spam first, then `SEND_CONFIRMATION` at the top of `Code.gs`, then the Apps Script **Executions** log — a failed send is logged there, and the signup itself is unaffected. |
-| The form does nothing at all | JavaScript error, or the endpoint never got set | Open the browser console for the error; check `WHENWHERE_CONFIG` is above the main script and the URL ends in `/exec`. |
+| The form does nothing at all | JavaScript error, or the endpoint never got set | Open the browser console for the error; check `WHENWHERE_CONFIG` in `config.js` (loaded before `app.js`) and the URL ends in `/exec`. |
 
 ## Why this instead of a mailing-list service
 

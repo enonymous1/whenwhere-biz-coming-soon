@@ -51,7 +51,7 @@ Serve the folder over HTTP first so the fonts load.
 
 ## Preview
 
-`index.html` is the whole page — open it in a browser, or serve the
+`index.html` + `style.css` + `config.js` + `app.js` are the page — open `index.html` in a browser, or serve the
 folder so paths resolve exactly as they will on Pages:
 
 ```bash
@@ -75,10 +75,10 @@ Full step-by-step instructions — private Sheet, Apps Script
 deployment, testing, and troubleshooting — are in
 [docs/LAUNCH-LIST-SETUP.md](docs/LAUNCH-LIST-SETUP.md). The short
 version: create a new private Google Sheet, paste
-`docs/apps-script/Code.gs` into its Apps Script editor, deploy it as
+`apps-script/Code.gs` into its Apps Script editor, deploy it as
 a Web app (Execute as: Me, Who has access: Anyone), paste the Web
 app URL as `LAUNCH_LIST_ENDPOINT` in `WHENWHERE_CONFIG` in
-`index.html`, push once. After that, every signup lands as a row in
+`config.js`, push once. After that, every signup lands as a row in
 the Sheet — `Submitted | Email`, deduped by address — and the list
 is yours to export when launch time comes.
 
@@ -141,15 +141,20 @@ whenwhere-biz-coming-soon/
 ├── .github/
 │   └── workflows/
 │       └── pages.yml           # deploy on push to main
+├── apps-script/
+│   └── Code.gs                 # Apps Script doPost for the launch-list Sheet
 ├── docs/
 │   ├── LAUNCH-LIST-SETUP.md    # private Sheet + Apps Script setup, testing, troubleshooting
 │   ├── LAUNCH-LIST-PIPELINE.md # how one signup travels: form → Sheet → emails → launch
 │   ├── CUSTOM-DOMAIN.md        # point whenwhere.biz at this page (DNS + HTTPS)
-│   ├── screenshots/
-│   │   └── hero.png            # README hero shot (1280×700, dark mode)
-│   └── apps-script/
-│       └── Code.gs             # Apps Script doPost for the launch-list Sheet
-├── index.html                  # the page
+│   └── screenshots/
+│       └── hero.png            # README hero shot (1280×700, dark mode)
+├── index.html                  # the page (markup + JSON-LD only)
+├── style.css                   # all page styles, incl. the CSS starfield fallback
+├── config.js                   # WHENWHERE_CONFIG (the launch-list endpoint)
+├── app.js                      # signup form + sky canvas
+├── favicon.png
+├── CNAME
 ├── README.md
 └── LICENSE                     # © 2026 When&Where.biz, all rights reserved
 ```
