@@ -31,6 +31,10 @@ ready — one page, one job: collect emails for the launch list.
   to hello@whenwhere.biz; that mailto hand-off is gone — the form
   now records the address itself, and there is no "email us at"
   line to scrape or to answer by hand.
+- **GoatCounter analytics** — one async script in `<head>` reports
+  each page view (path, title, referrer) to
+  https://whenwherebiz.goatcounter.com. No cookies, no personal
+  data, nothing shown on the page. See [Analytics](#analytics).
 
 ## Screenshot
 
@@ -72,6 +76,21 @@ app URL as `LAUNCH_LIST_ENDPOINT` in `WHENWHERE_CONFIG` in
 `index.html`, push once. After that, every signup lands as a row in
 the Sheet — `Submitted | Email`, deduped by address — and the list
 is yours to export when launch time comes.
+
+## Analytics
+
+Page views are counted by [GoatCounter](https://www.goatcounter.com)
+(free, no cookies, no personal data). One async script in `<head>`
+reports each view — path, page title, referrer — to the dashboard at
+https://whenwherebiz.goatcounter.com. The `src` is explicit `https`
+(not protocol-relative) so the script loads over HTTPS even if the
+page is ever served over plain HTTP. GoatCounter deliberately does
+not count visits from localhost, so opening the page locally while
+developing never pollutes the stats; to verify the count fires from
+a local copy, set `window.goatcounter = { allow_local: true }` before
+the script in a test copy only (never in the real page). The signup
+count itself lives in the launch-list Sheet — the dashboard's visitor
+count next to it is the conversion rate.
 
 ## Deployment
 
