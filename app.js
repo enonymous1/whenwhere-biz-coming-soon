@@ -120,6 +120,13 @@
  * no animation loop) and pauses the loop while the tab is
  * hidden, so it costs nothing when nobody is looking at it.
  *
+ * Pointer play (mouse only, skipped under reduced motion):
+ * moving the mouse eases the field a few px toward the cursor
+ * (larger stars shift more, for depth) and brightens the stars
+ * near it; clicking or tapping the sky — anywhere that is not
+ * the form, the button, or a link — sends a shooting star
+ * streaking from that spot.
+ *
  * Performance note: twinkle is applied with globalAlpha over a
  * fillStyle set once, not by building an rgba() string per star
  * per frame (the old code called toFixed(3) + string concat
@@ -144,6 +151,11 @@
     window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   var stars = [];
   var W = 0, H = 0, raf = null;
+  // Pointer play (both skipped under prefers-reduced-motion).
+  var parTX = 0, parTY = 0, parX = 0, parY = 0; // parallax target + smoothed, -1..1
+  var mouseX = -1, mouseY = -1; // cursor in CSS px, -1 when off-screen
+  var meteors = []; // {x, y, vx, vy, life} — at most 3 at once
+  var lastT = 0;
 
   function build() {
     // Cap devicePixelRatio at 2: above that the canvas costs
@@ -176,6 +188,13 @@
 
   function draw(t) {
     ctx.clearRect(0, 0, W, H);
+    // Frame delta, clamped — a hidden tab resumes with a sane step.
+    var dt = lastT ? Math.min(t - lastT, 50) : 16;
+    lastT = t;
+    // Ease the parallax toward its target so the field glides
+    // instead of snapping to the cursor.
+    parX += (parTX - parX) * 0.06;
+    parY += (parTY - parY) * 0.06;
     // Points of light read as twinkling stars on the navy night, and as
     // faint gold dust on the ivory light theme.
     ctx.fillStyle = "#eec887";
@@ -184,18 +203,65 @@
       var tw = reduceMotion ? 0.7 : 0.5 + 0.5 * Math.sin(s.phase + t * 0.001 * s.speed);
       var a = s.base * tw;
       var x = s.x + (reduceMotion ? 0 : Math.sin(t * 0.00005 * s.drift + s.phase) * 6);
+      var y = s.y;
+      var r = s.r;
+      if (!reduceMotion) {
+        // Parallax: larger (nearer) stars shift more with the cursor.
+        x += parX * r * 3;
+        y += parY * r * 3;
+        // Stars near the cursor brighten and swell slightly.
+        if (mouseX >= 0) {
+          var dx = x - mouseX, dy = y - mouseY;
+          var d = Math.sqrt(dx * dx + dy * dy);
+          if (d < 120) {
+            var boost = 1 - d / 120;
+            a = Math.min(1, a + boost * 0.5);
+            r += boost * 0.5;
+          }
+        }
+      }
       ctx.globalAlpha = a;
       ctx.beginPath();
-      ctx.arc(x, s.y, s.r, 0, Math.PI * 2);
+      ctx.arc(x, y, r, 0, Math.PI * 2);
       ctx.fill();
-      if (s.r > 1.7) {
+      if (r > 1.7) {
         // Larger stars get a soft halo, at 12% of the core alpha.
         ctx.fillStyle = "#d9a441";
         ctx.globalAlpha = a * 0.12;
         ctx.beginPath();
-        ctx.arc(x, s.y, s.r * 3.2, 0, Math.PI * 2);
+        ctx.arc(x, y, r * 3.2, 0, Math.PI * 2);
         ctx.fill();
         ctx.fillStyle = "#eec887";
+      }
+    }
+    // Shooting stars: move, fade, draw, drop the spent ones.
+    // (At most 3, so the gradient string below is built 3x/frame
+    // at most — nothing like the per-star churn avoided above.)
+    if (!reduceMotion && meteors.length) {
+      for (var j = meteors.length - 1; j >= 0; j--) {
+        var m = meteors[j];
+        m.x += m.vx * dt / 1000;
+        m.y += m.vy * dt / 1000;
+        m.life -= dt / 800; // ~0.8 s streak
+        if (m.life <= 0) { meteors.splice(j, 1); continue; }
+        var tx = m.x - m.vx * 0.12, ty = m.y - m.vy * 0.12;
+        var grad = ctx.createLinearGradient(m.x, m.y, tx, ty);
+        grad.addColorStop(0, "rgba(238,200,135," + m.life.toFixed(2) + ")");
+        grad.addColorStop(1, "rgba(238,200,135,0)");
+        ctx.strokeStyle = grad;
+        ctx.lineWidth = 2;
+        ctx.lineCap = "round";
+        ctx.globalAlpha = 1;
+        ctx.beginPath();
+        ctx.moveTo(m.x, m.y);
+        ctx.lineTo(tx, ty);
+        ctx.stroke();
+        // Bright head.
+        ctx.fillStyle = "#eec887";
+        ctx.globalAlpha = m.life;
+        ctx.beginPath();
+        ctx.arc(m.x, m.y, 2, 0, Math.PI * 2);
+        ctx.fill();
       }
     }
     ctx.globalAlpha = 1; // never leak a partial alpha into the next frame
@@ -216,6 +282,44 @@
       if (reduceMotion) draw(0);
     }, 180);
   });
+
+  if (!reduceMotion) {
+    // Mouse parallax: the field eases a few px toward the cursor.
+    // Touch has no hover, so only the mouse moves the sky; taps
+    // get a shooting star below.
+    window.addEventListener("pointermove", function (e) {
+      if (e.pointerType !== "mouse") return;
+      mouseX = e.clientX;
+      mouseY = e.clientY;
+      parTX = (e.clientX / W - 0.5) * 2;
+      parTY = (e.clientY / H - 0.5) * 2;
+    });
+    // Mouse left the window — ease the field back to centre.
+    document.addEventListener("pointerout", function (e) {
+      if (!e.relatedTarget) {
+        mouseX = mouseY = -1;
+        parTX = parTY = 0;
+      }
+    });
+    // Click / tap the sky for a shooting star. Clicks on the form,
+    // the button, or any link are the visitor doing something else,
+    // so they never spawn one.
+    window.addEventListener("pointerdown", function (e) {
+      if (e.target && e.target.closest &&
+          e.target.closest("input, button, a, select, textarea, label")) return;
+      if (meteors.length >= 3) meteors.shift(); // cap: drop the oldest
+      var angle = (15 + Math.random() * 60) * Math.PI / 180; // 15-75 deg down
+      var dir = Math.random() < 0.5 ? 1 : -1;
+      var speed = 500 + Math.random() * 200;
+      meteors.push({
+        x: e.clientX,
+        y: e.clientY,
+        vx: Math.cos(angle) * speed * dir,
+        vy: Math.sin(angle) * speed,
+        life: 1
+      });
+    });
+  }
 
   // Don't burn CPU (and battery) animating a hidden tab.
   document.addEventListener("visibilitychange", function () {

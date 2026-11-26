@@ -32,7 +32,12 @@ there.
   via the theme variables) that shows only when the canvas is not
   running — JS off, or `getContext()` failed — so the sky is never
   empty; the canvas hides it by adding `has-sky` to `<html>` once
-  it is drawing.
+  it is drawing. The sky is playful, too: moving the mouse eases
+  the field a few px toward the cursor (larger stars shift more,
+  for depth) and brightens the stars near it; clicking or tapping
+  anywhere that is not the form, the button, or a link sends a
+  shooting star streaking from that spot (at most three at once).
+  Both are skipped under `prefers-reduced-motion`.
 - **No email address is listed anywhere on the page.** The original
   Wix version signed people up by opening their mail app addressed
   to hello@whenwhere.biz; that mailto hand-off is gone — the form
