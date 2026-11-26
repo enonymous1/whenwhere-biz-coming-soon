@@ -5,8 +5,10 @@ drone light shows across Charlottesville and Central Virginia. It is
 the placeholder that holds `whenwhere.biz` until the full site is
 ready — one page, one job: collect emails for the launch list.
 
-**Live:** <https://enonymous1.github.io/whenwhere-biz-coming-soon/>
-— GitHub Pages, deployed from this repo (see [Deployment](#deployment)).
+**Live:** <https://whenwhere.biz/> — GitHub Pages, deployed from
+this repo (see [Deployment](#deployment)). The project URL
+<https://enonymous1.github.io/whenwhere-biz-coming-soon/> redirects
+there.
 
 ## What is on the page
 
@@ -82,6 +84,19 @@ app URL as `LAUNCH_LIST_ENDPOINT` in `WHENWHERE_CONFIG` in
 the Sheet — `Submitted | Email`, deduped by address — and the list
 is yours to export when launch time comes.
 
+How one signup travels:
+
+```mermaid
+flowchart TB
+    V[Visitor enters email, clicks Notify Me] --> P[POST to the Apps Script Web app]
+    P --> D{Address already in the Sheet?}
+    D -- Yes --> O[Return ok — no second row]
+    D -- No --> S[Append Submitted · Email to the Sheet]
+    S --> E[Send confirmation email to the visitor<br/>and notify email to the owner, if set]
+    E --> T[Return ok → page shows You're on the list]
+    O --> T
+```
+
 ## Analytics
 
 Page views are counted by [GoatCounter](https://www.goatcounter.com)
@@ -108,8 +123,8 @@ git, and no backend server needed. The workflow
 
 1. Create an EMPTY public repo, e.g.
    `enonymous1/whenwhere-biz-coming-soon`.
-2. Upload this folder's contents (including `.github/` and `docs/`)
-   to its root.
+2. Upload this folder's contents (including `.github/`,
+   `apps-script/`, and `docs/`) to its root.
 3. Repo → **Settings → Pages → Build and deployment → Source: GitHub
    Actions** → Save. (Not "Deploy from a branch".)
 4. Push to `main`. Watch the run under the repo's **Actions** tab;
@@ -117,7 +132,8 @@ git, and no backend server needed. The workflow
    `https://enonymous1.github.io/whenwhere-biz-coming-soon/` — that
    is the link to share for the demo.
 
-**Updating the page:** edit `index.html` and push. Copy changes do
+**Updating the page:** edit the relevant file (`index.html`,
+`style.css`, `config.js`, or `app.js`) and push. Copy changes do
 not need a redeploy of anything else — the page is static, and the
 launch list lives in the Sheet, not the repo.
 
