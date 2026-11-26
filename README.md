@@ -25,7 +25,12 @@ ready — one page, one job: collect emails for the launch list.
   the form up so the visitor can retry.
 - **A twinkling points-of-light canvas** behind the content — stars
   on the navy night, faint gold dust on the ivory light theme. It
-  respects `prefers-reduced-motion` (a single still frame).
+  respects `prefers-reduced-motion` (a single still frame). Behind
+  it sits a pure-CSS starfield fallback (three tiled layers, gold
+  via the theme variables) that shows only when the canvas is not
+  running — JS off, or `getContext()` failed — so the sky is never
+  empty; the canvas hides it by adding `has-sky` to `<html>` once
+  it is drawing.
 - **No email address is listed anywhere on the page.** The original
   Wix version signed people up by opening their mail app addressed
   to hello@whenwhere.biz; that mailto hand-off is gone — the form
